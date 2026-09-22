@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="description" content="Forex Dummies is a beginner-friendly demo forex trading app for learning the basics." />
+    <title>Forex Dummies</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Beginner FX</p>
+          <h1>Forex Dummies</h1>
+        </div>
+        <button id="installBtn" class="secondary hidden" type="button">Install app</button>
+      </header>
+
+      <main class="main-grid">
+        <section class="panel hero-panel">
+          <div class="hero-copy">
+            <span class="tag">Demo account</span>
+            <h2>Learn forex without risking real money.</h2>
+            <p>
+              Practice currency basics, manage risk, and place simulated trades in a simple mobile-friendly dashboard.
+            </p>
+          </div>
+          <div class="hero-value">
+            <span>Balance</span>
+            <strong id="balanceValue">$10,000.00</strong>
+            <small>Virtual funds</small>
+          </div>
+        </section>
+
+        <section class="stats-grid">
+          <article class="stat-card">
+            <span>P/L</span>
+            <strong id="pnlValue">+$0.00</strong>
+          </article>
+          <article class="stat-card">
+            <span>Open trades</span>
+            <strong id="openTradesValue">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Win rate</span>
+            <strong id="winRateValue">0%</strong>
+          </article>
+          <article class="stat-card">
+            <span>Daily risk</span>
+            <strong id="riskValue">0%</strong>
+          </article>
+        </section>
+
+        <nav class="tab-nav" aria-label="App tabs">
+          <button class="tab-button active" data-tab="learn" type="button">Learn</button>
+          <button class="tab-button" data-tab="trade" type="button">Trade</button>
+          <button class="tab-button" data-tab="risk" type="button">Risk</button>
+          <button class="tab-button" data-tab="journal" type="button">Journal</button>
+        </nav>
+
+        <section id="learn" class="tab-panel active">
+          <div class="panel">
+            <h3>Quick lessons</h3>
+            <div class="lesson-grid" id="lessonGrid"></div>
+          </div>
+        </section>
+
+        <section id="trade" class="tab-panel">
+          <div class="panel trade-layout">
+            <div class="trade-form-wrap">
+              <h3>Place a demo trade</h3>
+              <form id="tradeForm">
+                <div class="field-group">
+                  <label for="pair">Currency pair</label>
+                  <select id="pair" name="pair">
+                    <option value="EUR/USD">EUR/USD</option>
+                    <option value="GBP/USD">GBP/USD</option>
+                    <option value="USD/JPY">USD/JPY</option>
+                    <option value="AUD/USD">AUD/USD</option>
+                    <option value="USD/CHF">USD/CHF</option>
+                  </select>
+                </div>
+
+                <div class="field-row">
+                  <div class="field-group">
+                    <label for="side">Direction</label>
+                    <select id="side" name="side">
+                      <option value="buy">Buy</option>
+                      <option value="sell">Sell</option>
+                    </select>
+                  </div>
+                  <div class="field-group">
+                    <label for="lots">Lots</label>
+                    <input id="lots" name="lots" type="number" min="0.01" step="0.01" value="0.10" />
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <div class="field-group">
+                    <label for="entry">Entry</label>
+                    <input id="entry" name="entry" type="number" step="0.0001" value="1.0850" />
+                  </div>
+                  <div class="field-group">
+                    <label for="stop">Stop loss</label>
+                    <input id="stop" name="stop" type="number" step="0.0001" value="1.0800" />
+                  </div>
+                </div>
+
+                <div class="field-group">
+                  <label for="takeProfit">Take profit</label>
+                  <input id="takeProfit" name="takeProfit" type="number" step="0.0001" value="1.0950" />
+                </div>
+
+                <button type="submit" class="primary-btn">Open demo trade</button>
+              </form>
+            </div>
+
+            <div class="watchlist-wrap">
+              <h3>Market watch</h3>
+              <div id="watchlist" class="watchlist"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="risk" class="tab-panel">
+          <div class="panel risk-layout">
+            <div class="risk-card">
+              <h3>Risk calculator</h3>
+              <form id="riskForm" class="risk-form">
+                <div class="field-group">
+                  <label for="accountBalance">Account balance</label>
+                  <input id="accountBalance" type="number" value="10000" />
+                </div>
+                <div class="field-group">
+                  <label for="riskPercent">Risk per trade</label>
+                  <input id="riskPercent" type="number" value="2" step="0.5" />
+                </div>
+                <div class="field-group">
+                  <label for="stopDistance">Stop size (pips)</label>
+                  <input id="stopDistance" type="number" value="30" />
+                </div>
+                <button type="button" id="calculateRisk" class="primary-btn">Calculate</button>
+              </form>
+            </div>
+
+            <div class="risk-card result-card">
+              <h3>Suggested lot size</h3>
+              <div class="result-row">
+                <span>Max risk</span>
+                <strong id="maxRiskValue">$200.00</strong>
+              </div>
+              <div class="result-row">
+                <span>Risk per pip</span>
+                <strong id="riskPerPipValue">$0.67</strong>
+              </div>
+              <div class="result-row">
+                <span>Recommended lots</span>
+                <strong id="lotSuggestionValue">0.07</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="journal" class="tab-panel">
+          <div class="panel">
+            <h3>Trade journal</h3>
+            <div id="tradeJournal" class="journal-list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

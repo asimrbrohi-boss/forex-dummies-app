@@ -18,3 +18,9 @@ Example:
 
 ```bash
 python -m http.server 8000
+```
+
+Then open http://localhost:8000
+
+## Notes
+This app is for educational use only and does not connect to real brokers or real-money accounts.

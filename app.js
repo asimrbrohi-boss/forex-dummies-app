@@ -1,4 +1,3 @@
-
 const state = {
   balance: 10000,
   trades: [],
