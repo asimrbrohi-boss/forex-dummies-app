@@ -1,7 +1,10 @@
+const MARKET_PROXY_URL = 'https://your-worker-subdomain.workers.dev/quotes';
+
 const state = {
   balance: 10000,
   trades: [],
   journal: [],
+  liveFeedActive: false,
   market: {
     'EUR/USD': { price: 1.0850, delta: 0.0008 },
     'GBP/USD': { price: 1.2650, delta: 0.0011 },
@@ -41,6 +44,8 @@ const els = {
   tradeForm: document.getElementById('tradeForm'),
   riskForm: document.getElementById('riskForm'),
   installBtn: document.getElementById('installBtn'),
+  marketStatusDot: document.getElementById('marketStatusDot'),
+  marketStatusText: document.getElementById('marketStatusText'),
   tabButtons: [...document.querySelectorAll('.tab-button')],
   tabPanels: [...document.querySelectorAll('.tab-panel')]
 };
@@ -55,6 +60,13 @@ const usdPairMap = {
 
 function formatMoney(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+}
+
+function setMarketStatus(isOnline, message) {
+  if (!els.marketStatusDot || !els.marketStatusText) return;
+  els.marketStatusDot.classList.toggle('online', isOnline);
+  els.marketStatusDot.classList.toggle('offline', !isOnline);
+  els.marketStatusText.textContent = message || (isOnline ? 'Live feed online' : 'Using demo feed');
 }
 
 function formatPips(value) {
@@ -85,6 +97,7 @@ function renderWatchlist() {
       const price = Number(item.price);
       const trend = item.delta >= 0 ? 'up' : 'down';
       const direction = trend === 'up' ? '▲' : '▼';
+      const decimals = pair.includes('JPY') ? 2 : 4;
       return `
         <div class="watch-row">
           <div class="watch-pair">
@@ -92,8 +105,8 @@ function renderWatchlist() {
             <span class="watch-meta">Spread 0.6</span>
           </div>
           <div class="watch-pair">
-            <strong>${price.toFixed(pair.includes('JPY') ? 2 : 4)}</strong>
-            <span class="watch-meta">${direction} ${Math.abs(item.delta).toFixed(pair.includes('JPY') ? 2 : 4)}</span>
+            <strong>${price.toFixed(decimals)}</strong>
+            <span class="watch-meta">${direction} ${Math.abs(item.delta).toFixed(decimals)}</span>
           </div>
           <span class="ticker ${trend}">${trend === 'up' ? 'Bullish' : 'Bearish'}</span>
         </div>
@@ -124,11 +137,6 @@ function renderJournal() {
     .join('');
 }
 
-function getPipValue(pair, lots) {
-  const base = pair.includes('JPY') ? 1000 : 10000;
-  return (lots * base) / 10;
-}
-
 function calculateRisk() {
   const balance = Number(document.getElementById('accountBalance').value || 10000);
   const percent = Number(document.getElementById('riskPercent').value || 2);
@@ -140,7 +148,6 @@ function calculateRisk() {
   document.getElementById('maxRiskValue').textContent = formatMoney(maxRisk);
   document.getElementById('riskPerPipValue').textContent = formatMoney(riskPerPip);
   document.getElementById('lotSuggestionValue').textContent = lotSuggestion.toFixed(2);
-
   document.getElementById('riskValue').textContent = `${percent.toFixed(1)}%`;
 }
 
@@ -206,8 +213,6 @@ function openTrade(event) {
   };
 
   state.trades.push(trade);
-  state.balance += trade.direction === 'buy' ? 0 : 0;
-
   state.journal = state.trades
     .filter((item) => item.status !== 'open')
     .map((tradeItem) => ({
@@ -226,7 +231,7 @@ function openTrade(event) {
   document.getElementById('takeProfit').value = (Number(usdPairMap[pair]) + 0.01).toFixed(pair.includes('JPY') ? 2 : 4);
 }
 
-function updateMarket() {
+function simulateMarketTick() {
   Object.keys(state.market).forEach((pair) => {
     const item = state.market[pair];
     const variance = (Math.random() - 0.5) * (pair.includes('JPY') ? 1.4 : 0.0015);
@@ -261,6 +266,47 @@ function updateMarket() {
   renderWatchlist();
   updateSummary();
   renderJournal();
+}
+
+async function fetchLiveMarketData() {
+  if (!MARKET_PROXY_URL || MARKET_PROXY_URL.includes('your-worker')) {
+    setMarketStatus(false, 'Using demo feed');
+    return false;
+  }
+
+  try {
+    const response = await fetch(MARKET_PROXY_URL, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const payload = await response.json();
+    const pairs = Object.keys(state.market);
+
+    pairs.forEach((pair) => {
+      if (!payload[pair]) return;
+
+      const item = payload[pair];
+      state.market[pair].price = Number(item.price);
+      state.market[pair].delta = Number(item.delta || 0);
+    });
+
+    state.liveFeedActive = true;
+    setMarketStatus(true, `Live feed • ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+    renderWatchlist();
+    return true;
+  } catch (error) {
+    console.warn('Live market feed failed:', error);
+    state.liveFeedActive = false;
+    setMarketStatus(false, 'Using demo feed');
+    return false;
+  }
+}
+
+function updateMarket() {
+  if (state.liveFeedActive) {
+    renderWatchlist();
+    return;
+  }
+  simulateMarketTick();
 }
 
 function bindTabs() {
@@ -319,7 +365,15 @@ calculateRisk();
 bindTabs();
 initDefaults();
 handleInstallPrompt();
-setInterval(updateMarket, 4200);
+setMarketStatus(false, 'Using demo feed');
+fetchLiveMarketData();
+setInterval(() => {
+  if (!state.liveFeedActive) {
+    simulateMarketTick();
+  } else {
+    fetchLiveMarketData();
+  }
+}, 4200);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
