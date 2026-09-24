@@ -1,4 +1,4 @@
-https://forex-market-proxy.ab12cd34.workers.dev
+https://forex-market-proxy.asimrbrohi.workers.dev
 const state = {
   balance: 10000,
   trades: [],
