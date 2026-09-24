@@ -1,5 +1,5 @@
-const MARKET_PROXY_URL = 'https://your-worker-subdomain.workers.dev/quotes';
-
+const MARKET_PROXY_URL =
+  'https://YOUR-WORKER-NAME.YOUR-ACCOUNT.workers.dev/quotes';
 const state = {
   balance: 10000,
   trades: [],
