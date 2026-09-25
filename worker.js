@@ -1,99 +1,56 @@
 const SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF'];
 const BASE_URL = 'https://api.twelvedata.com';
-const quoteCache = new Map();
+const previousQuotes = new Map();
 
-function getDecimals(symbol) {
+function decimals(symbol) {
   return symbol.includes('JPY') ? 2 : 4;
 }
 
-function normalizePrice(symbol, value) {
-  const decimals = getDecimals(symbol);
-  return Number(Number(value).toFixed(decimals));
-}
-
-function buildCorsHeaders() {
+function corsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Cache-Control': 'no-store'
   };
 }
 
-async function fetchSymbolPrice(symbol, apiKey) {
+async function fetchPrice(symbol, apiKey) {
   const url = new URL('/price', BASE_URL);
   url.searchParams.set('symbol', symbol);
   url.searchParams.set('apikey', apiKey);
-
-  const response = await fetch(url.toString());
-  if (!response.ok) {
-    throw new Error(`Twelve Data request failed for ${symbol}: ${response.status}`);
-  }
-
+  url.searchParams.set('dp', String(decimals(symbol)));
+  const response = await fetch(url, { cf: { cacheTtl: 0, cacheEverything: false } });
   const data = await response.json();
-  if (!data || !data.price) {
-    throw new Error(`No price value returned for ${symbol}`);
+  if (!response.ok || !data || !data.price) {
+    throw new Error(`Twelve Data failed for ${symbol}: ${data?.message || response.status}`);
   }
-
-  return normalizePrice(symbol, data.price);
+  return Number(data.price);
 }
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: buildCorsHeaders() });
-    }
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders() });
+    if (request.method !== 'GET') return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
 
-    if (request.method !== 'GET') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { 'Content-Type': 'application/json', ...buildCorsHeaders() }
-      });
-    }
-
-    const apiKey = env.TWELVE_DATA_API_KEY;
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({
-          error: 'Missing TWELVE_DATA_API_KEY environment variable. Add it in Cloudflare Worker settings.'
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', ...buildCorsHeaders() }
-        }
-      );
+    if (!env.TWELVE_DATA_API_KEY) {
+      return new Response(JSON.stringify({ error: 'Missing TWELVE_DATA_API_KEY secret' }), { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
     }
 
     try {
       const payload = {};
-
       for (const symbol of SYMBOLS) {
-        const current = await fetchSymbolPrice(symbol, apiKey);
-        const previous = quoteCache.get(symbol) ?? current;
-        const delta = Number((current - previous).toFixed(getDecimals(symbol)));
-
+        const price = await fetchPrice(symbol, env.TWELVE_DATA_API_KEY);
+        const previous = previousQuotes.get(symbol);
         payload[symbol] = {
-          price: current,
-          delta
+          price,
+          delta: previous === undefined ? 0 : Number((price - previous).toFixed(6))
         };
-
-        quoteCache.set(symbol, current);
+        previousQuotes.set(symbol, price);
       }
-
-      return new Response(JSON.stringify(payload), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', ...buildCorsHeaders() }
-      });
+      return new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
     } catch (error) {
-      return new Response(
-        JSON.stringify({
-          error: 'Unable to fetch live market data',
-          details: error instanceof Error ? error.message : String(error)
-        }),
-        {
-          status: 502,
-          headers: { 'Content-Type': 'application/json', ...buildCorsHeaders() }
-        }
-      );
+      return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), { status: 502, headers: { 'Content-Type': 'application/json', ...corsHeaders() } });
     }
   }
 };
