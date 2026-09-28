@@ -71,7 +71,40 @@
           <button class="tab-button" data-tab="backtest" type="button">Backtest</button>
         </nav>
 
-        <section id="learn" class="tab-panel active">
+        <section 
+          <section id="backtest" class="tab-panel">
+  <div class="panel">
+    <h3>Forex trend backtest</h3>
+
+    <div class="field-row" style="gap: 1rem; align-items: end; margin-bottom: 1rem;">
+      <div class="field-group">
+        <label for="backtestPair">Pair</label>
+        <select id="backtestPair" name="backtestPair">
+          <option value="EUR/USD">EUR/USD</option>
+          <option value="GBP/USD">GBP/USD</option>
+          <option value="USD/JPY">USD/JPY</option>
+          <option value="AUD/USD">AUD/USD</option>
+          <option value="USD/CHF">USD/CHF</option>
+        </select>
+      </div>
+
+      <button id="fetchHistoricalData" class="primary-btn" type="button">
+        Run backtest
+      </button>
+    </div>
+
+    <p id="backtestStatus">Waiting for data...</p>
+
+    <div id="metricsPanel" style="margin-top: 1rem;"></div>
+
+    <div id="candleTable" style="margin-top: 1.5rem;"></div>
+
+    <div id="signalChart" style="margin-top: 1.5rem;">
+      <h4>Trade signals</h4>
+      <div id="tradesList"></div>
+    </div>
+  </div>
+</section>id="learn" class="tab-panel active">
           <div class="panel">
             <h3>Quick lessons</h3>
             <div class="lesson-grid" id="lessonGrid"></div>
